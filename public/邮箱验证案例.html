@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="/public/assets/bootstrap/css/bootstrap.min.css">
+    <style>
+        p:not(:empty) {
+			padding: 15px;
+		}
+		.container {
+			padding-top: 100px;
+		}
+    </style>
+</head>
+<body>
+    <div class="container">
+    <label for="exampleInputEmail1">Email address</label>
+    <input type="email" class="form-control" id="email" placeholder="Email">
+    <!--alert-danger alert-success -->
+    <p id="info"></p>
+    </div>
+    <script src="js/ajax.js"></script>
+    <script>
+        var emailInp = document.querySelector('#email');
+        var info = document.querySelector('#info');
+        emailInp.onblur = function () {
+            var email = this.value;
+            // //验证邮箱的正则表达式
+            var reg = /^[A-Za-z\d]+([-_.][A-Za-z\d]+)*@([A-Za-z\d]+[-.])+[A-Za-z\d]{2,4}$/;
+            if(!reg.test(email)) {
+                info.innerHTML = '您输入的邮箱地址有误，请重新输入';
+                info.className = 'alert-danger';
+                return;
+            }
+            ajax({
+				type: 'get',
+				url: 'http://localhost:3000/isMail',
+				data: {
+					email: this.value
+				},
+				success: function (result) {
+					info.innerHTML = result.message;
+					info.className = 'bg-success';
+				},
+				error: function (result) {
+					info.innerHTML = result.message;
+					info.className = 'bg-danger';
+				}
+			})
+        }
+    </script>
+</body>
+</html>

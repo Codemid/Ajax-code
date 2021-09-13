@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href='assets/bootstrap/css/bootstrap.min.css'>
+    <style>
+        .container {
+            margin: 100px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <form>
+            <div class="form-group">
+              <label for="exampleFormControlFile1">请选择文件</label>
+              <input type="file"  class="form-control-file" id="file">
+              <div class="box">
+                </div>
+              <div class="progress">
+                <div class="progress-bar" id="bar" style="width: 0%;">0%</div>
+          </form>
+    </div>
+    <!-- <script src="js/ajax.js"></script> -->
+    <script>
+        var file = document.getElementById('file');
+        var bar = document.getElementById('bar');
+        var box = document.querySelector('.box');
+        file.onchange = function() {
+            var formData = new FormData();
+            formData.append('attrName', this.files[0]);
+            //创建ajax对象
+            var xhr = new XMLHttpRequest();
+            //配置ajax对象
+            xhr.open('post','http://localhost:3000/upload');
+            //在文件上传的过程中持续触发
+            xhr.upload.onprogress = function(e) {
+                //e.loaded 文件上传了多少
+                //e.total 上传文件的总大小
+                //设置进度条的宽度
+                bar.style.width = (e.loaded / e.total) * 100 + '%';
+                //将百分比显示在进度条中
+                bar.innerHTML = (e.loaded / e.total) * 100 + '%';
+            }
+            xhr.send(formData);
+            //监听服务器端响应给客户端的数据
+            xhr.onload = function() {
+                if(xhr.status == 200 ) {
+                    var result = JSON.parse(xhr.responseText);
+					// 动态创建img标签
+					var img = document.createElement('img');
+					// 给图片标签设置src属性
+					img.src = result.path.substring(1);
+					// 当图片加载完成以后
+					img.onload = function () {
+						// 将图片显示在页面中
+						box.appendChild(img);
+                }
+                }
+            }
+        }
+    </script>
+</body>
+</html>

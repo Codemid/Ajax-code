@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+	<link rel="stylesheet" href="assets/bootstrap/css/bootstrap.min.css">
+	<style>
+		.container {
+			padding-top: 150px;
+		}
+	</style>
+</head>
+<body>
+    <div class="container">
+        <div class="form-inline">
+			<div class="form-group">
+				<select class="form-control" id="province">
+					
+				</select>
+			</div>
+			<div class="form-group">
+				<select class="form-control" id="city">
+					<option>请选择城市</option>
+				</select>
+			</div>
+			<div class="form-group">
+				<select class="form-control" id="area">
+					<option>请选择县城</option>
+				</select>
+			</div>
+		</div>
+    </div>
+	<script src="js/ajax.js"></script>
+	<script src="js/template-web.js"></script>
+	<script type="text/html" id="provinceTpl">
+		<option>请选择省份</option>
+		{{each province}}
+		<option value="{{$value.id}}">{{$value.name}}</option>
+		{{/each}}
+	</script>
+	<script type="text/html" id="cityTpl">
+		<option>请选择城市</option>
+		{{each city}}
+		<option value="{{$value.id}}">{{$value.name}}</option>
+		{{/each}}
+	</script>
+	<script type="text/html" id="areaTpl">
+		<option>请选择县城</option>
+		{{each area}}
+		<option value="{{$value.id}}">{{$value.name}}</option>
+		{{/each}}
+	</script>
+	<script>
+		var province =document.getElementById('province');
+		var city =document.getElementById('city');
+		var area =document.getElementById('area');
+
+		//获取省份信息
+		ajax({
+			type: 'get',
+			url: 'http://localhost:3000/province',
+			success: function(result) {
+				console.log(result);
+				//使用模版引擎拼接字符串
+				var html =template('provinceTpl',{province: result})
+				//显示
+				province.innerHTML = html;
+			}
+		});
+		//为省份下拉框准备值改变事件
+		province.onchange = function() {
+			var pid = this.value;
+			//清空县城下拉列表中的信息
+			var html = template('areaTpl', {area: []});
+					//显示
+					area.innerHTML = html;
+			ajax({
+				type: 'get',
+				url: 'http://localhost:3000/cities',
+				data: {
+					id: pid
+				},
+				success: function(result) {
+					//拼接模版
+					var html = template('cityTpl', {city: result})
+					//显示
+					city.innerHTML = html;
+				} 
+			})
+		};
+		//为城市下拉框准备值改变事件
+		city.onchange = function() {
+			var cid = this.value;
+			ajax({
+				type: 'get',
+				url: 'http://localhost:3000/areas',
+				data: {
+					id: cid
+				},
+				success: function(result) {
+					console.log(result);
+					//拼接模版
+				var html = template('areaTpl', {area: result});
+					//显示
+					area.innerHTML = html;
+				}
+			})
+		}
+ 	</script>
+</body>
+</html>

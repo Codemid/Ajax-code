@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <form id="form">
+        <input type="text" name="username" id="username">
+        <input type="password" name="password" id="password">
+        <input type="submit" value="提交">
+    </form>
+    <script src="js/jquery.mini.js"></script>
+    <script>
+
+
+        
+            $('#form').on('submit',function() {
+                //将表单内容拼接成字符串
+                // var params = $('#form').serialize();
+                // console.log(params);
+                var result = serializeObject($('#form'))
+                console.log(result);
+                //阻止表单提交的默认行为
+                return false;
+            });
+           
+            //将表单中用户输入的内容转换为对象类型
+            function serializeObject(obj) {
+            var result = {};
+            //将表单中的内容转换为数组
+            var params = obj.serializeArray();
+
+            $.each(params,function(index,value) {
+                result[value.name] = value.value;
+            })
+            return result;
+        }
+        
+    </script>
+</body>
+</html>

@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Todo List</title>
+	<link rel="stylesheet" href="assets/css/base.css">
+	<link rel="stylesheet" href="assets/css/index.css">
+	<link rel="stylesheet" href="../js/nprogress/nprogress.css">
+	<link rel="stylesheet" href="./assets/font/iconfont.css">
+</head>
+<style>
+</style>
+
+<body>
+	<section class="todoapp">
+		<header class="header">
+			<h1>todos</h1>
+			<input type="text" class="new-todo" placeholder="What needs to be done?" autofocus id="task">
+		</header>
+		<!-- This section should be hidden by default and shown when there are todos -->
+		<section class="main">
+			<input class="toggle-all" type="checkbox">
+			<ul class="todo-list" id="todo-list"></ul>
+		</section>
+		<!-- This footer should hidden by default and shown when there are todos -->
+		<footer class="footer">
+			<!-- This should be `0 items left` by default -->
+			<span class="todo-count"><strong id="count">0</strong> item left</span>
+			<!-- Remove this if you don't implement routing -->
+			<ul class="filters">
+				<li>
+					<a href="javascript:;">All</a>
+				</li>
+				<li>
+					<a href="javascript:;">Active</a>
+				</li>
+				<li>
+					<a href="javascript:;">Completed</a>
+				</li>
+			</ul>
+			<!-- Hidden if no completed items are left ↓ -->
+			<button class="clear-completed">Clear completed</button>
+		</footer>
+	</section>
+	<script src="../js/jquery.mini.js"></script>
+	<script src="../js/template-web.js"></script>
+	<script src="../js/nprogress/nprogress.js"></script>
+	<script src="../js/tool.js"></script>
+	<script src="./assets/font/iconfont.js"></script>
+	<!-- 任务列表模板 -->
+	<script type="text/html" id="taskTpl">
+			{{each task}}
+			<li class="{{$value.completed ? 'completed' : ''}}">
+				<div class="view">
+					<input class="toggle iconfont {{$value.completed ? 'icon-xuanzhong' : 'icon-weixuanzhong'}}" type="checkbox" {{$value.completed ? 'checked' : ''}}>
+					<label id="double-click">{{$value.title}}</label>
+					<button class="destroy" data-id="{{$value._id}}"></button>
+				</div>
+				<input class="edit">
+			</li>
+			{{/each}}
+		</script>
+	<script>
+		var taskBox = $('#todo-list');
+		//用于存放任务列表的数组
+		var taskAry = [];
+		//添加任务的文本框
+		var taskIpn = $('#task');
+		//用于存放未完成任务数量的标签
+		var strong = $('#count');
+
+		//当页面有ajax请求
+		$(document).on('ajaxStart',function() {
+			NProgress.start();
+		})
+		//当页面有ajax请求完成
+		$(document).on('ajaxComplete', function() {
+			NProgress.done();
+		})
+		//向服务器发送请求已存在的任务
+		$.ajax({
+			type: 'get',
+			url: 'http://localhost:3000/todo/task',
+			success: function (response) {
+				//将已存在的任务存储在taskAry数组中
+				taskAry = response;
+				render(taskAry);
+				calcCount();
+			}
+		})
+
+		//添加任务
+		//获取文本框添加键盘抬起事件
+		taskIpn.on('keyup', function (event) {
+			//判断用户按下的是否是回车键及用户是否输入内容
+			var taskName = taskIpn.val();
+			if (event.keyCode == 13 && $(this).val().trim().length != 0) {
+				$.ajax({
+					type: 'post',
+					url: 'http://localhost:3000/todo/addTask',
+					contentType: 'application/json',
+					data: JSON.stringify({ title: taskName }),
+					success: function (response) {
+						//将返回的数据放到任务数组
+						taskAry.push(response);
+						render(taskAry);
+						//清空输入框
+						taskIpn.val('');
+						calcCount();
+					}
+				})
+			}
+		})
+
+		//删除任务 事件委托
+		taskBox.on('click', '.destroy', function () {
+			var id = $(this).attr('data-id');
+			$.ajax({
+				type: 'get',
+				url: 'http://localhost:3000/todo/delTask',
+				data: {
+					_id: id
+				},
+				success: function (response) {
+					//从任务数组中找到已经删除掉的任务的索引
+					var index = taskAry.findIndex(item => item._id == id);
+					//将任务数组中删掉
+					taskAry.splice(index, 1);
+					//重新渲染
+					render(taskAry);
+					calcCount();
+				}
+			})
+		})
+
+		//更改任务状态
+		taskBox.on('change', '.toggle', function () {
+			//获取点击选中按钮的选中状态
+			var status = $(this).is(':checked');
+			//获取选中按钮兄弟button的id
+			var id = $(this).siblings('button').attr('data-id');
+			//发送ajax请求
+			$.ajax({
+				type: 'post',
+				url: 'http://localhost:3000/todo/modifyTask',
+				data: JSON.stringify({ _id: id, completed: status }),
+				contentType: 'application/json',
+				success: function (response) {
+					//从任务数组中找到已经修改选中状态的任务的索引
+					var index = taskAry.findIndex(item => item._id == id);
+					//修改这个任务的选中状态
+					taskAry[index].completed = status;
+					//重新渲染页面
+					render(taskAry);
+					calcCount();
+				}
+			})
+		})
+
+		//修改任务名称
+		//给lable添加双击事件
+		taskBox.on('dblclick', '#double-click', function () {
+			//为当前任务外层的li标签添加eating类名，开起编辑状态
+			$(this).parents('li').addClass('editing');
+			//将任务名称显示在文本框中并让文本框获取焦点
+			$(this).parent().siblings('input').val($(this).text()).focus();
+
+		})
+
+		//当文本框失去焦点
+		taskBox.on('blur', '.edit', function () {
+			var newTaskname = $(this).val();
+			//获取编辑任务的id
+			var id = $(this).siblings().find('button').attr('data-id');
+			//发送ajax请求
+			$.ajax({
+				type: 'post',
+				url: 'http://localhost:3000/todo/modifyTask',
+				data: JSON.stringify({ _id: id, title: newTaskname }),
+				contentType: 'application/json',
+				success: function (response) {
+					//将新的数据追加到task数组
+					var item = taskAry.find(item => item._id == id);
+					// // //修改任务名称
+					item.title = response.title;
+					// //重新渲染页面
+					render(taskAry);
+					calcCount();
+
+				}
+			})
+
+		})
+
+		//显示所有任务
+		$('.filters li:eq(0) a').on('click', function () {
+			render(taskAry);
+			toggleClass(this)
+		})
+
+		//显示未完成任务
+		$('.filters li:eq(1) a').on('click', function () {
+			//找出任务数组中未完成的任务
+			var activeArr = taskAry.filter(item => item.completed == false);
+			//将
+			render(activeArr);
+			toggleClass(this)
+		})
+
+		//显示已完成的任务
+		$('.filters li:eq(2) a').on('click', function () {
+			//找出任务数组中已完成的任务
+			var completedArr = taskAry.filter(item => item.completed == true);
+			//将
+			render(completedArr);
+			toggleClass(this)
+		})
+
+		//清除已完成所有任务
+		$('.clear-completed').on('click', function () {
+			$.ajax({
+				type: 'get',
+				url: 'http://localhost:3000/todo/delcompleted',
+				success: function (response) {
+					//在数组里找到被清除的任务的索引
+					for(let i = 0; i<taskAry.length; i++) {
+						if(taskAry[i].completed == true) {
+							taskAry.splice(i,1)
+						}
+					}
+					render(taskAry);
+					calcCount();
+				}
+			})
+		})
+
+	</script>
+</body>
+
+</html>
